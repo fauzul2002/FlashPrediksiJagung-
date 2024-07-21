@@ -1,7 +1,11 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 from fts import FTS
-from utils import mean_squared_error, average_forecasting_error_rate
+from utils import (
+    mean_squared_error,
+    average_forecasting_error_rate,
+    mean_absolute_percentage_error,
+)
 import requests
 import pandas as pd
 
@@ -34,9 +38,9 @@ def predict():
         dataset.append(
             {
                 "key": data["Tahun"],
-                "value": data["Produksi"],
-                "luas_tanam": data["Area_Lahan"],
-                "luas_panen": data["Area_Panen"],
+                "value": float(data["Produksi"]),  # Konversi ke float
+                "luas_tanam": float(data["Area_Lahan"]),  # Konversi ke float
+                "luas_panen": float(data["Area_Panen"]),  # Konversi ke float
             }
         )
     min_val = min(v["value"] for v in dataset)
@@ -65,6 +69,7 @@ def predict():
     actual = [v["value"] for v in singleResult[1:]]
     mse = mean_squared_error(actual, forecasted)
     afer = average_forecasting_error_rate(actual, forecasted)
+
     # print(singleResult)
     # print({"mse": mse, "afer": afer})
 
@@ -87,15 +92,13 @@ def predict():
     evaluation_metrics = {"mse": mse, "afer": afer}
     mse_percentage = mse * 100
     afer_percentage = "{:.2f}".format(afer) * 100
+    mape = mean_absolute_percentage_error(actual, forecasted)
 
     # Mengembalikan response JSON
     response_data = {
         "data_train": singleResult,
         "prediction_results": prediction_results[-5:],
-        "evaluation_metrics": {
-            "mse": mse,
-            "afer": afer_percentage,
-        },
+        "evaluation_metrics": {"mse": mse, "afer": afer_percentage, "mape": mape},
     }
 
     return jsonify(response_data)
